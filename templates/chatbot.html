@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartFin Assistant Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .chat-container {
+            width: 400px;
+            height: 500px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-box {
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+            border-bottom: 2px solid #ddd;
+            font-size: 14px;
+            max-height: 400px;
+        }
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            border-top: 2px solid #ddd;
+        }
+        .chat-input input {
+            width: 85%;
+            padding: 10px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+        }
+        .chat-input button {
+            width: 15%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .chat-input button:hover {
+            background-color: #45a049;
+        }
+        .message {
+            margin: 5px;
+            padding: 8px;
+            border-radius: 5px;
+            max-width: 80%;
+        }
+        .user-message {
+            background-color: #d3f8d3;
+            align-self: flex-end;
+        }
+        .bot-message {
+            background-color: #f1f1f1;
+            align-self: flex-start;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box">
+            <!-- Chat messages will be displayed here -->
+        </div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="Ask a question..." />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        function appendMessage(message, type) {
+            const chatBox = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            div.classList.add('message', type);
+            div.textContent = message;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;  // Scroll to the latest message
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input').value;
+            if (userInput.trim() === "") return;
+
+            appendMessage(userInput, 'user-message');  // Show user message
+            document.getElementById('user-input').value = "";  // Clear the input field
+
+            try {
+                const response = await fetch('http://localhost:7000/ask-question', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: userInput })
+                });
+
+                const data = await response.json();
+                if (data.answer) {
+                    appendMessage(data.answer, 'bot-message');  // Show bot response
+                } else {
+                    appendMessage('Sorry, I didn\'t understand that.', 'bot-message');
+                }
+            } catch (error) {
+                appendMessage('Error: Could not fetch response.', 'bot-message');
+            }
+        }
+
+        document.getElementById('user-input').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

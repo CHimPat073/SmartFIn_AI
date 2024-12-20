@@ -1,0 +1,20 @@
+{
+  "name": "personal-finance-tracker",
+  "version": "1.0.0",
+  "description": "Personal Finance Tracker is a web application that helps you manage your finances effectively. With this application, you can track your income and expenses, set budgets, and gain better control over your financial health.",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "express-session": "^1.18.1",
+    "mongoose": "^8.8.2",
+    "nodemon": "^3.1.9"
+  }
+}

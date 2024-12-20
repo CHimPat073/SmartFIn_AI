@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <title>Chatbot Assistant - SmartFin Tracker</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color:#00674f;
+        }
+        nav {
+            background: #00674f;
+            padding: 10px 20px;
+        }
+        nav .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        nav .logo {
+            color: #fff;
+            font-size: 1.5rem;
+            text-decoration: none;
+        }
+        nav .nav-links li {
+            display: inline;
+            margin: 0 15px;
+        }
+        nav .nav-links a {
+            color: #fff;
+            text-decoration: none;
+        }
+        nav .buttons .btn-head {
+            margin-left: 10px;
+            padding: 5px 10px;
+            background: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        
+        /* Chatbox Styles */
+        .main-chat {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .chat-header h1 {
+            font-size: 24px;
+        }
+        .chat-header p {
+            color: #666;
+        }
+        .chat-box {
+            margin-top: 20px;
+        }
+        .chat-messages {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background: #d4edda;
+            text-align: right;
+        }
+        .bot-message {
+            background: #f8d7da;
+        }
+        .chat-input {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .chat-input button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .chat-input button:hover {
+            background: #0056b3;
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 10px 0;
+            background: #00674f;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="navbar">
+            <a href="{{ url_for('index') }}" class="logo"><i class="fas fa-robot"></i> SmartFin Assistant</a>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('index') }}#tracker">Tracker</a></li>
+                <li><a href="{{ url_for('index') }}#how-it-works">How it Works</a></li>
+                <li><a href="{{ url_for('support') }}">Support</a></li>
+            </ul>
+            <div class="buttons">
+                <a href="{{ url_for('login') }}" class="btn-head"><i class="fas fa-sign-in-alt"></i> Log In</a>
+                <a href="{{ url_for('sign_up') }}" class="btn-head"><i class="fas fa-user-plus"></i> Sign Up</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="section-box">
+        <div class="main-chat">
+            <div class="chat-header">
+                <h1>Welcome to SmartFin Assistant</h1>
+                <p>I'm here to help you track your finances, understand investments, and make smarter decisions. Type your query below!</p>
+            </div>
+            <div class="chat-box">
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="user-input" placeholder="Ask me anything..." onkeydown="if (event.keyCode === 13) sendMessage()">
+                    <button onclick="sendMessage()">Send</button>
+                    <input type="file" id="file-input" style="display: none;" onchange="uploadFile()">
+                    <button onclick="document.getElementById('file-input').click()">Upload File</button>
+                </div>
+            </div>
+            <div class="transaction-section">
+                
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer">
+            <p>Created by Group No. 108, DNS Project Exhibition</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+</body>
+</html>
+
+<script>
+    const chatMessages = document.getElementById('chat-messages');
+
+    function sendMessage() {
+        const userInput = document.getElementById('user-input');
+        const message = userInput.value.trim();
+
+        if (message === '') return;
+
+        // Add user's message to chat
+        addMessageToChat('user-message', message);
+
+        // Clear input field
+        userInput.value = '';
+
+        // Fetch bot response
+        getBotResponse(message)
+            .then(botResponse => addMessageToChat('bot-message', botResponse))
+            .catch(() => addMessageToChat('bot-message', "Error: Unable to fetch a response."));
+    }
+
+    function addMessageToChat(className, message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${className}`;
+        messageDiv.textContent = message;
+        chatMessages.appendChild(messageDiv);
+
+        // Scroll to the latest message
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Function that gets the user input and fetches transactions
+    function fetchUserTransactions() {
+        const fullname = document.getElementById("fullname-input").value;
+        if (fullname) {
+            getTransactions(fullname);  // Call the function to fetch transactions
+        } else {
+            alert("Please enter a valid full name.");
+        }
+    }
+
+    // Example function to send fullname to the backend and fetch transactions
+    function getTransactions(fullname) {
+        fetch('http://127.0.0.1:7000/get-transactions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ "fullname": fullname })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.transactions) {
+                // Handle displaying the transactions
+                displayTransactions(data.transactions);
+            } else if (data.message) {
+                // Handle case where no transactions are found
+                displayMessage(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            displayMessage('An error occurred while fetching transactions.');
+        });
+    }
+
+    // Example function to display transactions
+    function displayTransactions(transactions) {
+        const transactionsList = document.getElementById("transactions-list");
+        transactionsList.innerHTML = "";  // Clear previous transactions
+
+        transactions.forEach(transaction => {
+            const transactionElement = document.createElement("li");
+            transactionElement.textContent = `Date: ${transaction.date}, Amount: ${transaction.amount}, Description: ${transaction.description}, Type: ${transaction.type}`;
+            transactionsList.appendChild(transactionElement);
+        });
+    }
+
+    // Example function to display a message if no transactions found
+    function displayMessage(message) {
+        const transactionsList = document.getElementById("transactions-list");
+        transactionsList.innerHTML = message;  // Display the message
+    }
+
+    async function getBotResponse(message) {
+        try {
+            const response = await fetch('http://127.0.0.1:7000/ask-question', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: message.toLowerCase() }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return data.answer || "Sorry, I didn't understand that.";
+            } else {
+                return "Server error. Please try again later.";
+            }
+        } catch (error) {
+            console.error(error);
+            return "Error: Unable to fetch a response.";
+        }
+    }
+</script>

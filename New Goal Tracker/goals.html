@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Goal Tracker</title>
+    <link rel="stylesheet" href="goals.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Add some basic styling for the goal folders */
+        .goal-folder {
+            display: flex; /* Use flexbox for layout */
+            justify-content: space-between; /* Space between items */
+            align-items: center; /* Center align items vertically */
+            margin-bottom: 20px; /* Spacing between goal entries */
+            padding: 10px;
+            border: 1px solid #ccc; /* Light border around each goal */
+            border-radius: 8px; /* Rounded corners */
+        }
+
+        .goal-details {
+            flex: 1; /* Allow goal details to take up available space */
+            margin-right: 20px; /* Space between details and chart */
+        }
+
+        canvas {
+            width: 250px !important; /* Set equal width */
+            height: 250px !important; /* Set equal height */
+            border-radius: 50%; /* Make sure it stays circular */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Add shadow for depth */
+        }
+    </style>
+    <style>
+       body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+header {
+    background-color: #00674F;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 10px;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+}
+
+.goal-overview {
+    margin-bottom: 20px;
+}
+
+input {
+    margin: 10px 0;
+    padding: 8px;
+    width: calc(100% - 16px);
+}
+
+button {
+    padding: 10px 15px;
+    background-color: #00674F;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #00674F;
+}
+
+.goal-folder {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.progress-tracking {
+    margin-top: 20px;
+}
+
+
+
+ 
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">GoalTracker</div>
+        <nav>
+            <ul>
+                <li><a href="#">Home</a></li>
+                <li><a href="#">Progress</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="goal-overview">
+            <h1>Add a New Goal</h1>
+            <input type="text" id="goalName" placeholder="Enter Goal Name" required />
+            <input type="number" id="targetAmount" placeholder="Target Amount" required />
+            <input type="number" id="currentSavings" placeholder="Current Savings" required />
+            <input type="number" id="monthlyContribution" placeholder="Monthly Contribution" required />
+            <input type="date" id="startDate" required />
+            <input type="date" id="endDate" required />
+            <button id="addGoalButton" onclick="addGoal()">Add Goal</button>
+        </div>
+
+        <div class="progress-tracking">
+            <h3>Goal Progress</h3>
+            <div id="goalList"></div>
+        </div>
+    </main>
+
+    <script>
+        // Load all goals from the server
+        async function loadGoals() {
+            const response = await fetch('http://localhost:5000/goals');
+            const goals = await response.json();
+            goals.forEach(goal => displayGoal(goal));
+        }
+
+        // Display goal in the UI
+        function displayGoal(goal) {
+            const goalList = document.getElementById('goalList');
+            const goalFolder = document.createElement('div');
+            goalFolder.classList.add('goal-folder');
+            goalFolder.setAttribute('data-id', goal._id);
+            goalFolder.innerHTML = `
+                <div class="goal-details">
+                    <h4>${goal.goalName}</h4>
+                    <p>Target Amount: ₹${goal.targetAmount}</p>
+                    <p>Current Savings: ₹${goal.currentSavings}</p>
+                    <p>Monthly Contribution: ₹${goal.monthlyContribution}</p>
+                    <p>Start Date: ${goal.startDate}</p>
+                    <p>End Date: ${goal.endDate}</p>
+                    <button onclick="editGoal('${goal._id}')">Edit</button>
+                    <button onclick="deleteGoal('${goal._id}')">Delete</button>
+                </div>
+                <canvas id="${goal.goalName}-chart"></canvas>
+            `;
+            goalList.appendChild(goalFolder);
+            drawChart(goal.goalName, goal.currentSavings, goal.targetAmount);
+        }
+
+        // Add Goal Function
+        async function addGoal() {
+            const goalData = {
+                goalName: document.getElementById('goalName').value,
+                targetAmount: parseFloat(document.getElementById('targetAmount').value),
+                currentSavings: parseFloat(document.getElementById('currentSavings').value),
+                monthlyContribution: parseFloat(document.getElementById('monthlyContribution').value),
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+            };
+
+            const response = await fetch('http://localhost:5000/goals', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(goalData)
+            });
+
+            const newGoal = await response.json();
+            displayGoal(newGoal);
+            clearInputFields();
+        }
+
+        // Edit Goal Function
+        function editGoal(id) {
+            const goalFolder = document.querySelector(`.goal-folder[data-id='${id}']`);
+            const goalName = goalFolder.querySelector('h4').innerText;
+            const targetAmount = goalFolder.querySelector('p:nth-child(2)').innerText.split('₹')[1];
+            const currentSavings = goalFolder.querySelector('p:nth-child(3)').innerText.split('₹')[1];
+            const monthlyContribution = goalFolder.querySelector('p:nth-child(4)').innerText.split('₹')[1];
+            const startDate = goalFolder.querySelector('p:nth-child(5)').innerText.split(': ')[1];
+            const endDate = goalFolder.querySelector('p:nth-child(6)').innerText.split(': ')[1];
+
+            // Populate the input fields
+            document.getElementById('goalName').value = goalName;
+            document.getElementById('targetAmount').value = targetAmount;
+            document.getElementById('currentSavings').value = currentSavings;
+            document.getElementById('monthlyContribution').value = monthlyContribution;
+            document.getElementById('startDate').value = startDate;
+            document.getElementById('endDate').value = endDate;
+
+            // Change the button to update the goal
+            document.getElementById('addGoalButton').innerText = 'Update Goal';
+            document.getElementById('addGoalButton').setAttribute('onclick', `updateGoal('${id}')`);
+        }
+
+        // Update Goal Function
+        async function updateGoal(id) {
+            const goalData = {
+                goalName: document.getElementById('goalName').value,
+                targetAmount: parseFloat(document.getElementById('targetAmount').value),
+                currentSavings: parseFloat(document.getElementById('currentSavings').value),
+                monthlyContribution: parseFloat(document.getElementById('monthlyContribution').value),
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+            };
+
+            await fetch(`http://localhost:5000/goals/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(goalData)
+            });
+
+            location.reload(); // Reload the page to reflect changes
+        }
+
+        // Delete Goal Function
+        async function deleteGoal(id) {
+            await fetch(`http://localhost:5000/goals/${id}`, {
+                method: 'DELETE',
+            });
+
+            location.reload(); // Reload the page to reflect changes
+        }
+
+        // Draw chart for goal progress
+        function drawChart(goalName, currentSavings, targetAmount) {
+            const ctx = document.getElementById(`${goalName}-chart`).getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut', // Change to 'doughnut' for donut chart
+                data: {
+                    labels: ['Current Savings', 'Remaining Amount'],
+                    datasets: [{
+                        data: [currentSavings, targetAmount - currentSavings],
+                        backgroundColor: ['#1b998b', '#98111e'], // Vibrant colors
+                        borderColor: ['#fff', '#fff'], // White border for better separation
+                        borderWidth: 2 // Border width
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true, // Keep aspect ratio to make it circular
+                    plugins: {
+                        legend: {
+                            display: false // Hide the legend if not needed
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return tooltipItem.label + ': ₹' + tooltipItem.raw; // Format tooltip
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Clear input fields
+        function clearInputFields() {
+            document.getElementById('goalName').value = '';
+            document.getElementById('targetAmount').value = '';
+            document.getElementById('currentSavings').value = '';
+            document.getElementById('monthlyContribution').value = '';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+        }
+
+        // Load goals when the page is ready
+        window.onload = loadGoals;
+    </script>
+</body>
+</html>
